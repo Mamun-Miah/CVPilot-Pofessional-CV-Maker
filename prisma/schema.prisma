@@ -1,0 +1,137 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OtpType {
+  VERIFY_EMAIL
+  FORGOT_PASSWORD
+}
+
+model User {
+  id         String          @id @default(uuid())
+  email      String          @unique
+  password   String?
+  name       String?
+  avatar     String?
+  googleId   String?         @unique
+  role       String          @default("user")
+  status     String          @default("active")
+  isVerified Boolean         @default(false)
+  resumes    Resume[]
+  settings   UserSettings?
+  ratings    ResumeRating[]
+  comments   ResumeComment[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  email     String
+  ipAddress String?
+  details   String?
+  createdAt DateTime @default(now())
+}
+
+model UserSettings {
+  id                      String   @id @default(uuid())
+  userId                  String   @unique
+  user                    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio                     String?
+  phone                   String?
+  location                String?
+  language                String   @default("en")
+  theme                   String   @default("system")
+  emailNotifications      Boolean  @default(true)
+  defaultTemplate         String   @default("modern-professional")
+  autoSaveInterval        Int      @default(30)
+  defaultResumeVisibility String   @default("private")
+  allowSearchIndexing     Boolean  @default(false)
+  showEmailOnPublicResume Boolean  @default(true)
+  showPhoneOnPublicResume Boolean  @default(false)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+}
+
+model Otp {
+  id        String   @id @default(uuid())
+  email     String
+  otp       String
+  type      OtpType
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email, type])
+}
+
+model Resume {
+  id             String          @id @default(uuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String          @default("My Professional Resume")
+  template       String          @default("modern-professional")
+  atsScore       Int             @default(0)
+  isPublic       Boolean         @default(false)
+  slug           String?         @unique
+  personalInfo   Json?
+  summary        String?         @db.Text
+  objective      String?         @db.Text
+  experiences    Json?
+  education      Json?
+  skills         Json?
+  projects       Json?
+  certifications Json?
+  languages      Json?
+  awards         Json?
+  references     Json?
+  bdDetails      Json?
+  interests      Json?
+  design         Json?
+  downloadsCount Int             @default(0)
+  viewsCount     Int             @default(0)
+  ratings        ResumeRating[]
+  comments       ResumeComment[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([userId])
+}
+
+model ResumeRating {
+  id        String   @id @default(uuid())
+  resumeId  String
+  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([resumeId, userId])
+  @@index([resumeId])
+}
+
+model ResumeComment {
+  id        String   @id @default(uuid())
+  resumeId  String
+  resume    Resume   @relation(fields: [resumeId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String   @db.Text
+  status    String   @default("approved")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([resumeId])
+  @@index([userId])
+}
+
