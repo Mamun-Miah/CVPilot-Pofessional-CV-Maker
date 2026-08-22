@@ -1,23 +1,42 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log('Seeding demo user...');
-  const user = await prisma.user.upsert({
-    where: { email: 'demo@example.com' },
-    update: {},
+  console.log('Seeding Super Admin user...');
+  const hashedPassword = await bcrypt.hash('AdminPassword123!', 10);
+
+  const adminUser = await prisma.user.upsert({
+    where: { email: 'admin@cvpilot.com' },
+    update: {
+      role: 'superadmin',
+      status: 'active',
+      isVerified: true,
+    },
     create: {
-      email: 'demo@example.com',
-      name: 'Demo User',
-      role: 'admin',
+      email: 'admin@cvpilot.com',
+      name: 'Rahim Admin',
+      password: hashedPassword,
+      role: 'superadmin',
+      status: 'active',
+      isVerified: true,
     },
   });
-  console.log('Demo user successfully created in database:');
-  console.dir(user, { depth: null });
+
+  console.log('Super Admin user created successfully:');
+  console.dir(
+    {
+      email: adminUser.email,
+      role: adminUser.role,
+      status: adminUser.status,
+      password: 'AdminPassword123!',
+    },
+    { depth: null },
+  );
 }
 
 main()
