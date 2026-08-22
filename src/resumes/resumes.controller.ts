@@ -25,6 +25,7 @@ import { CreateResumeDto } from './dto/create-resume.dto';
 import { UpdateResumeDto } from './dto/update-resume.dto';
 import { RateResumeDto } from './dto/rate-resume.dto';
 import { AddCommentDto } from './dto/add-comment.dto';
+import { ToggleShareDto } from './dto/toggle-share.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { GetUser } from '../auth/decorators/get-user.decorator';
 
@@ -375,17 +376,27 @@ export class ResumesController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({
-    summary: 'Enable public sharing and generate QR code',
+    summary: 'Turn public link sharing ON / OFF and get shareable URL',
     description:
-      'Makes a resume publicly accessible, assigns a unique URL slug, and generates a QR code Data URL for sharing.',
+      'Toggles public access ON/OFF for a resume, generates unique URL slug, and returns the shareable URL and QR code for copying.',
   })
   @ApiParam({ name: 'id', example: 'd9b2e8a1-4c6e-4f5a-9a1b-2c3d4e5f6a7b' })
+  @ApiBody({ type: ToggleShareDto, required: false })
   @ApiResponse({
     status: 200,
-    description: 'Returns public share URL, slug, and QR code Data URL.',
+    description:
+      'Returns updated public state, shareable URL, slug, and QR code.',
   })
-  async shareResume(@Param('id') id: string, @GetUser('id') userId: string) {
-    const result = await this.resumesService.shareResume(id, userId);
+  async shareResume(
+    @Param('id') id: string,
+    @GetUser('id') userId: string,
+    @Body() body?: ToggleShareDto,
+  ) {
+    const result = await this.resumesService.shareResume(
+      id,
+      userId,
+      body?.isPublic,
+    );
     return result;
   }
 

@@ -393,12 +393,16 @@ export class ResumesService {
   async shareResume(
     id: string,
     userId: string,
+    isPublicState?: boolean,
     hostUrl?: string,
   ): Promise<ShareResumeResult> {
     const resume = await this.findOne(id, userId);
 
+    const newIsPublic =
+      isPublicState !== undefined ? isPublicState : !resume.isPublic;
+
     let slug = resume.slug;
-    if (!slug) {
+    if (newIsPublic && !slug) {
       const personal = resume.personalInfo as PersonalInfoDto | null;
       slug = this.generateSlug(resume.title, personal?.fullName);
     }
@@ -406,14 +410,15 @@ export class ResumesService {
     const updated = await this.prisma.resume.update({
       where: { id },
       data: {
-        isPublic: true,
-        slug,
+        isPublic: newIsPublic,
+        ...(slug && { slug }),
       },
     });
 
     const origin = hostUrl || 'https://careerpilot.com.bd';
-    const shareUrl = `${origin}/r/${slug}`;
-    const qrCode = await this.generateQrCode(shareUrl);
+    const shareUrl =
+      newIsPublic && updated.slug ? `${origin}/r/${updated.slug}` : '';
+    const qrCode = shareUrl ? await this.generateQrCode(shareUrl) : '';
 
     return {
       id: updated.id,
